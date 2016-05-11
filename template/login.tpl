@@ -3,6 +3,8 @@
   <head>
     <meta charset="utf-8">
     <title>Let's Auth Example RP</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <script>
       var qsFrag = window.location.hash.substr(1);
       var formData = new FormData();
