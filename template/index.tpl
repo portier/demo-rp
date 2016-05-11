@@ -21,5 +21,6 @@
       <input type=submit value="Log In" />
     </form>
     % end
+    <p><small><em>Code at <a href="https://github.com/letsauth/demo-rp">LetsAuth/Demo-RP</a>.</em></small></p>
   </body>
 </html>
