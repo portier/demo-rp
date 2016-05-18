@@ -10,7 +10,6 @@ from os import getenv
 from random import getrandbits
 import re
 from time import time
-from urllib.parse import parse_qs
 
 SECRET = getenv('COOKIE_SECRET', '%x' % getrandbits(128))
 
@@ -37,14 +36,13 @@ def index():
 
 
 @get('/login')
-def login():
-    return template('template/login')
+def login_get():
+    redirect('/')
 
 
-@post('/login/xhr')
-def login_xhr():
-    qs = parse_qs(request.forms.get('qs'))
-    jwt = qs['id_token'][0]
+@post('/login')
+def login_post():
+    jwt = request.forms.get('id_token')
 
     result = get_verified_email(jwt)
     if 'error' in result:
@@ -59,7 +57,8 @@ def login_xhr():
                         secret=SECRET,
                         httponly=True,
                         secure=META['RP_ORIGIN'].startswith('https://'))
-    return {"redirect": META['RP_ORIGIN']}
+
+    redirect('/')
 
 
 @get('/logout')
