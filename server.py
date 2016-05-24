@@ -89,5 +89,6 @@ def get_verified_email(jwt):
     return {'email': payload['sub']}
 
 
-host = 'localhost' if 'localhost' in META['RP_ORIGIN'] else '0.0.0.0'
-run(server='gunicorn', host=host, port=int(getenv('PORT', '8080')))
+if __name__ == '__main__':
+    host = 'localhost' if 'localhost' in META['RP_ORIGIN'] else '0.0.0.0'
+    run(server='gunicorn', host=host, port=int(getenv('PORT', '8080')))
