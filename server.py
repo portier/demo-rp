@@ -48,7 +48,8 @@ def login_post():
     if 'error' in result:
         response.status = 400
         response.set_header('X-Failure-Reason', result['error'])
-        return {'error': result['error']}
+        return template('template/error',
+                        error=result['error'])
 
     return template('template/verified',
                     email=result['email'])
