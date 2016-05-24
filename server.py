@@ -44,13 +44,6 @@ def login_post():
                     email=result['email'])
 
 
-@get('/logout')
-def logout():
-    # TODO: Switch to a POST / add CSRF protections?
-    response.delete_cookie('session', path="/")
-    redirect('/')
-
-
 @get('/static/<path:path>')
 def static(path):
     return static_file(path, root='./static')
