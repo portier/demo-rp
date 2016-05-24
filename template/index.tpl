@@ -12,7 +12,7 @@
     <p>You can <a href="/logout">Log Out</a>.</p>
     % else:
     <p>Hello! You are not logged in.</p>
-    <form action="https://{{ META['LA_HOSTNAME'] }}/auth" method="POST">
+    <form action="{{ META['LA_ORIGIN'] }}/auth" method="POST">
       <input type=email name=login_hint placeholder="you@example.com" />
       <input type=hidden name=scope value="openid email" />
       <input type=hidden name=response_type value="id_token" />

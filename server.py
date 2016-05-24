@@ -14,7 +14,7 @@ from time import time
 SECRET = getenv('COOKIE_SECRET', '%x' % getrandbits(128))
 
 META = {
-    'LA_HOSTNAME': 'laoidc.herokuapp.com',
+    'LA_ORIGIN': 'https://laoidc.herokuapp.com',
     'RP_ORIGIN': 'http://localhost:%s' % getenv('PORT', '8080'),
 }
 
@@ -86,7 +86,7 @@ def get_verified_email(jwt):
     payload = json.loads(b64dec(raw_payload + '====').decode('utf-8'))
 
     iss = payload['iss']
-    known_iss = 'https://%s' % META['LA_HOSTNAME']
+    known_iss = META['LA_ORIGIN']
     if iss != known_iss:
         return {'error':
                 'Untrusted issuer. Expected %s, got %s' % (known_iss, iss)}
