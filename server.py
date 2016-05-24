@@ -50,15 +50,8 @@ def login_post():
         response.set_header('X-Failure-Reason', result['error'])
         return {'error': result['error']}
 
-    # TODO: Bake an expiration date into the cookie
-    # TODO: Add some other way to selectively, proactively invalidate sessions?
-    response.set_cookie('session', {'email': result['email']},
-                        path="/",
-                        secret=SECRET,
-                        httponly=True,
-                        secure=META['RP_ORIGIN'].startswith('https://'))
-
-    redirect('/')
+    return template('template/verified',
+                    email=result['email'])
 
 
 @get('/logout')
