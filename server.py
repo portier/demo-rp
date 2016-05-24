@@ -26,7 +26,7 @@ def index():
 
 @get('/login')
 def login_get():
-    redirect('/')
+    return index()
 
 
 @post('/login')
