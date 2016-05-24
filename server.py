@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
-from base64 import urlsafe_b64decode as b64dec
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from base64 import urlsafe_b64decode
 import json
 from os import getenv
 import re
-from urllib import parse
+from urllib import parse, request
 from time import time
 from wsgiref import simple_server
 import os, mimetypes
@@ -58,18 +61,46 @@ def static(env):
     return 200, {'Content-Type': type}, src
 
 
+def b64dec(s):
+    return urlsafe_b64decode(s.encode('ascii') + b'=' * (4 - len(s) % 4))
+
+
 def get_verified_email(jwt):
     # FIXME: This blindly trusts the JWT. Need to verify:
     # [ ] header is using an appropriate signing algorithm
-    # [ ] signature is valid and matches a key from the LA provider's JWK Set
+    # [x] signature is valid and matches a key from the LA provider's JWK Set
     # [x] iss matches a trusted LA provider's origin
     # [x] aud matches this site's origin
     # [x] exp > (now) > iat, with some margin
     # [-] sub is a valid email address
 
-    (raw_header, raw_payload, raw_signature) = jwt.split('.')
-    payload = json.loads(b64dec(raw_payload + '====').decode('utf-8'))
+    rsp = request.urlopen(''.join((
+        META['LA_ORIGIN'],
+        '/.well-known/openid-configuration',
+    )))
+    config = json.loads(rsp.read().decode('utf-8'))
+    rsp = request.urlopen(config['jwks_uri'])
+    keys = json.loads(rsp.read().decode('utf-8'))['keys']
 
+    raw_header, raw_payload, raw_signature = jwt.split('.')
+    header = json.loads(b64dec(raw_header).decode('utf-8'))
+    key = [k for k in keys if k['kid'] == header['kid']][0]
+    e = int.from_bytes(b64dec(key['e']), 'big')
+    n = int.from_bytes(b64dec(key['n']), 'big')
+    pub_key = rsa.RSAPublicNumbers(e, n).public_key(default_backend())
+
+    signature = b64dec(raw_signature)
+    verifier = pub_key.verifier(signature, padding.PKCS1v15(), hashes.SHA256())
+    verifier.update(b'.'.join((
+        raw_header.encode('ascii'),
+        raw_payload.encode('ascii'),
+    )))
+    try:
+        verifier.verify()
+    except Exception:
+        return {'error': 'Invalid signature'}
+
+    payload = json.loads(b64dec(raw_payload).decode('utf-8'))
     iss = payload['iss']
     known_iss = META['LA_ORIGIN']
     if iss != known_iss:
