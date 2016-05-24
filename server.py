@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
-from bottle import (
-    get, post, run, static_file, template, request, response, redirect
-)
-
 from base64 import urlsafe_b64decode as b64dec
 import json
 from os import getenv
 import re
 from urllib import parse
 from time import time
+from wsgiref import simple_server
+import os, mimetypes
+
+DIR = os.path.dirname(os.path.abspath(__file__))
 
 META = {
     'LA_ORIGIN': 'https://laoidc.herokuapp.com',
@@ -20,34 +20,42 @@ if getenv('HEROKU_APP_NAME'):
     META['RP_ORIGIN'] = 'https://%s.herokuapp.com' % getenv('HEROKU_APP_NAME')
 
 
-@get('/')
-def index():
+def template(tpl, status=200, **vars):
+    with open(os.path.join(DIR, tpl) + '.tpl') as f:
+        src = f.read()
+    for k, v in vars.items():
+        src = src.replace('{{ %s }}' % k, v)
+    headers = {'Content-Type': 'text/html; charset=utf-8'}
+    return 200, headers, src.encode('utf-8')
+
+
+def index(env):
     return template('template/index', **META)
 
 
-@get('/login')
-def login_get():
-    return index()
+def login(env):
 
+    if env['REQUEST_METHOD'] == 'GET':
+        return index(env)
 
-@post('/login')
-def login_post():
-    jwt = request.forms.get('id_token')
-
+    body = env['wsgi.input'].read(int(env['CONTENT_LENGTH']))
+    jwt = parse.parse_qs(body)[b'id_token'][0].decode('ascii')
     result = get_verified_email(jwt)
     if 'error' in result:
-        response.status = 400
-        response.set_header('X-Failure-Reason', result['error'])
-        return template('template/error',
+        return template('template/error', 400,
                         error=result['error'])
 
     return template('template/verified',
                     email=result['email'])
 
 
-@get('/static/<path:path>')
-def static(path):
-    return static_file(path, root='./static')
+def static(env):
+    pi = [] if not env['PATH_INFO'] else env['PATH_INFO'].strip('/').split('/')
+    fn = os.path.join(DIR, 'static', '/'.join(pi[1:]))
+    type = mimetypes.guess_type(fn)[0]
+    with open(fn, 'rb') as f:
+        src = f.read()
+    return 200, {'Content-Type': type}, src
 
 
 def get_verified_email(jwt):
@@ -90,6 +98,17 @@ def get_verified_email(jwt):
     return {'email': payload['sub']}
 
 
+HANDLERS = {'index': index, 'login': login, 'static': static}
+STATUS = {200: '200 OK', 400: '400 Bad Request'}
+
+def application(env, respond):
+    pi = [] if not env['PATH_INFO'] else env['PATH_INFO'].strip('/').split('/')
+    handler = pi[0] if pi and pi[0] else 'index'
+    status, headers, content = HANDLERS[handler](env)
+    respond(STATUS[status], list(headers.items()))
+    return [content]
+
+
 if __name__ == '__main__':
     host, port = parse.urlparse(META['RP_ORIGIN']).netloc.split(':')
-    run(server='gunicorn', host=host, port=int(port))
+    simple_server.make_server(host, int(port), application).serve_forever()
