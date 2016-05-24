@@ -7,11 +7,8 @@ from bottle import (
 from base64 import urlsafe_b64decode as b64dec
 import json
 from os import getenv
-from random import getrandbits
 import re
 from time import time
-
-SECRET = getenv('COOKIE_SECRET', '%x' % getrandbits(128))
 
 META = {
     'LA_ORIGIN': 'https://laoidc.herokuapp.com',
@@ -24,15 +21,7 @@ if getenv('HEROKU_APP_NAME'):
 
 @get('/')
 def index():
-    # TODO: Move session handling to middleware
-    # TODO: Check cookie expiration, once added
-    session = request.get_cookie('session', secret=SECRET)
-    if session is None:
-        session = {'email': None}
-
-    return template('template/index',
-                    email=session['email'],
-                    META=META)
+    return template('template/index', **META)
 
 
 @get('/login')
