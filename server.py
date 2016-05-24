@@ -8,6 +8,7 @@ from base64 import urlsafe_b64decode as b64dec
 import json
 from os import getenv
 import re
+from urllib import parse
 from time import time
 
 META = {
@@ -90,5 +91,5 @@ def get_verified_email(jwt):
 
 
 if __name__ == '__main__':
-    host = 'localhost' if 'localhost' in META['RP_ORIGIN'] else '0.0.0.0'
-    run(server='gunicorn', host=host, port=int(getenv('PORT', '8080')))
+    host, port = parse.urlparse(META['RP_ORIGIN']).netloc.split(':')
+    run(server='gunicorn', host=host, port=int(port))
