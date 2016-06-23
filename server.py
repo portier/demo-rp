@@ -48,6 +48,9 @@ def login(env):
         return template('template/error', 400,
                         error=result['error'])
 
+    # At this stage, the user is verified to own the email address. This is
+    # where you'd set a cookie to maintain a session in your app. Be sure to
+    # restrict the cookie to your secure origin, with the http-only flag set.
     return template('template/verified',
                     email=result['email'])
 
