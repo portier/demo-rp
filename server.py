@@ -79,12 +79,22 @@ def get_verified_email(jwt):
         '/.well-known/openid-configuration',
     )))
     config = json.loads(rsp.read().decode('utf-8'))
+    if 'jwks_uri' not in config:
+        return {'error': 'No jwks_uri in discovery document.'}
+
     rsp = request.urlopen(config['jwks_uri'])
-    keys = json.loads(rsp.read().decode('utf-8'))['keys']
+    try:
+        keys = json.loads(rsp.read().decode('utf-8'))['keys']
+    except Exception:
+        return {'error': 'Problem finding keys in JWK key set.'}
 
     raw_header, raw_payload, raw_signature = jwt.split('.')
     header = json.loads(b64dec(raw_header).decode('utf-8'))
-    key = [k for k in keys if k['kid'] == header['kid']][0]
+    try:
+        key = [k for k in keys if k['kid'] == header['kid']][0]
+    except Exception:
+        return {'error': 'Cannot find key with ID %s.' % header['kid']}
+
     e = int.from_bytes(b64dec(key['e']), 'big')
     n = int.from_bytes(b64dec(key['n']), 'big')
     pub_key = rsa.RSAPublicNumbers(e, n).public_key(default_backend())
