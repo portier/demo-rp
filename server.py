@@ -10,7 +10,7 @@ import re
 from urllib import parse, request
 from time import time
 from wsgiref import simple_server
-import os, mimetypes
+import os, mimetypes, html
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -27,7 +27,7 @@ def template(tpl, status=200, **vars):
     with open(os.path.join(DIR, tpl) + '.tpl') as f:
         src = f.read()
     for k, v in vars.items():
-        src = src.replace('{{ %s }}' % k, v)
+        src = src.replace('{{ %s }}' % k, html.escape(v, True))
     headers = {'Content-Type': 'text/html; charset=utf-8'}
     return 200, headers, src.encode('utf-8')
 
