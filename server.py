@@ -15,8 +15,8 @@ import os, mimetypes
 DIR = os.path.dirname(os.path.abspath(__file__))
 
 META = {
-    'LA_ORIGIN': 'https://laoidc.herokuapp.com',
-    'RP_ORIGIN': 'http://localhost:%s' % getenv('PORT', '8080'),
+    'LA_ORIGIN': 'https://letsauth.xavamedia.nl',
+    'RP_ORIGIN': 'http://xavamedia.nl:%s' % getenv('PORT', '8000'),
 }
 
 if getenv('HEROKU_APP_NAME'):
@@ -39,7 +39,7 @@ def index(env):
 def login(env):
 
     if env['REQUEST_METHOD'] == 'GET':
-        return index(env)
+        return 302, {'Location': META['RP_ORIGIN'] + '/'}, b''
 
     body = env['wsgi.input'].read(int(env['CONTENT_LENGTH']))
     jwt = parse.parse_qs(body)[b'id_token'][0].decode('ascii')
@@ -130,7 +130,7 @@ def get_verified_email(jwt):
 
 
 HANDLERS = {'index': index, 'login': login, 'static': static}
-STATUS = {200: '200 OK', 400: '400 Bad Request'}
+STATUS = {200: '200 OK', 302: '302 Found', 400: '400 Bad Request'}
 
 def application(env, respond):
     pi = [] if not env['PATH_INFO'] else env['PATH_INFO'].strip('/').split('/')
