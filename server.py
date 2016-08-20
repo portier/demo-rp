@@ -15,7 +15,7 @@ import os, mimetypes, html
 DIR = os.path.dirname(os.path.abspath(__file__))
 
 META = {
-    'LA_ORIGIN': 'https://letsauth.xavamedia.nl',
+    'PORTIER_ORIGIN': 'https://broker.portier.io',
     'RP_ORIGIN': 'http://xavamedia.nl:%s' % getenv('PORT', '8000'),
 }
 
@@ -78,7 +78,7 @@ def get_verified_email(jwt):
     # [-] sub is a valid email address
 
     rsp = request.urlopen(''.join((
-        META['LA_ORIGIN'],
+        META['PORTIER_ORIGIN'],
         '/.well-known/openid-configuration',
     )))
     config = json.loads(rsp.read().decode('utf-8'))
@@ -115,7 +115,7 @@ def get_verified_email(jwt):
 
     payload = json.loads(b64dec(raw_payload).decode('utf-8'))
     iss = payload['iss']
-    known_iss = META['LA_ORIGIN']
+    known_iss = META['PORTIER_ORIGIN']
     if iss != known_iss:
         return {'error':
                 'Untrusted issuer. Expected %s, got %s' % (known_iss, iss)}
