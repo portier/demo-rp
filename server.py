@@ -5,7 +5,6 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from base64 import urlsafe_b64decode
 import json
 import jwt
-from os import getenv
 import re
 from urllib import parse, request
 from time import time
@@ -14,14 +13,7 @@ import os, mimetypes, html
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 
-META = {
-    'PORTIER_ORIGIN': 'https://broker.portier.io',
-    'RP_ORIGIN': 'http://xavamedia.nl:%s' % getenv('PORT', '8000'),
-}
-
-if getenv('HEROKU_APP_NAME'):
-    META['RP_ORIGIN'] = 'https://%s.herokuapp.com' % getenv('HEROKU_APP_NAME')
-
+META = json.load(open(os.path.join(DIR, 'config.json')))
 
 def template(tpl, status=200, **vars):
     with open(os.path.join(DIR, tpl) + '.tpl') as f:
@@ -39,7 +31,7 @@ def index(env):
 def login(env):
 
     if env['REQUEST_METHOD'] == 'GET':
-        return 302, {'Location': META['RP_ORIGIN'] + '/'}, b''
+        return 302, {'Location': META['rp_origin'] + '/'}, b''
 
     body = env['wsgi.input'].read(int(env['CONTENT_LENGTH']))
     token = parse.parse_qs(body)[b'id_token'][0].decode('ascii')
@@ -70,7 +62,7 @@ def b64dec(s):
 
 def get_verified_email(token):
     rsp = request.urlopen(''.join((
-        META['PORTIER_ORIGIN'],
+        META['portier_origin'],
         '/.well-known/openid-configuration',
     )))
     config = json.loads(rsp.read().decode('utf-8'))
@@ -104,8 +96,8 @@ def get_verified_email(token):
     try:
         payload = jwt.decode(token, pub_key,
                              algorithms=['RS256'],
-                             audience=META['RP_ORIGIN'],
-                             issuer=META['PORTIER_ORIGIN'],
+                             audience=META['rp_origin'],
+                             issuer=META['portier_origin'],
                              leeway=3 * 60)
     except Exception:
         return {'error': 'Invalid token'}
@@ -129,5 +121,5 @@ def application(env, respond):
 
 
 if __name__ == '__main__':
-    host, port = parse.urlparse(META['RP_ORIGIN']).netloc.split(':')
+    host, port = parse.urlparse(META['rp_origin']).netloc.split(':')
     simple_server.make_server(host, int(port), application).serve_forever()

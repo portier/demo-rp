@@ -12,9 +12,13 @@ implemented in Python 3. To get started:
 
     pip install -r requirements.txt
 
+    cp config.json.dist config.json
+
     ./server.py
 
-The server runs on port 8000 by default.
+The server runs on port 8000 by default, which can be changed by editing
+``config.json``. The template works fine for local development, with the
+Portier broker running locally as well.
 
 The primary use of this implementation is testing the `broker`_ code.
 
