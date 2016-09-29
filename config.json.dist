@@ -1,0 +1,4 @@
+{
+  "portier_origin": "http://localhost:3333",
+  "rp_origin": "http://localhost:8000"
+}
