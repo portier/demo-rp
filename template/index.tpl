@@ -8,12 +8,8 @@
   </head>
   <body>
     <p>You can log in below:</p>
-    <form action="{{ portier_origin }}/auth" method="POST">
-      <input type=email name=login_hint placeholder="you@example.com" />
-      <input type=hidden name=scope value="openid email" />
-      <input type=hidden name=response_type value="id_token" />
-      <input type=hidden name=client_id value="{{ rp_origin }}" />
-      <input type=hidden name=redirect_uri value="{{ rp_origin }}/login" />
+    <form action="/login" method="POST">
+      <input type=email name=email placeholder="you@example.com" />
       <input type=submit value="Log In" />
     </form>
     <p><small><em>Code at <a href="https://github.com/portier/demo-rp">Portier/Demo-RP</a>.</em></small></p>
