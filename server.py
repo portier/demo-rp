@@ -3,6 +3,7 @@
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 from base64 import urlsafe_b64decode
+import binascii
 import json
 import jwt
 import re
@@ -14,6 +15,11 @@ import os, mimetypes, html
 DIR = os.path.dirname(os.path.abspath(__file__))
 
 META = json.load(open(os.path.join(DIR, 'config.json')))
+
+# Our example nonce storage is a dict indexed by email. This works for our very
+# basic single-process server, but normally you'd store these in a database or
+# in the session data.
+NONCES = {}
 
 def template(tpl, status=200, **vars):
     with open(os.path.join(DIR, tpl) + '.tpl') as f:
@@ -36,11 +42,15 @@ def login(env):
     body = env['wsgi.input'].read(int(env['CONTENT_LENGTH']))
     email = parse.parse_qs(body)[b'email'][0].decode('ascii')
 
+    nonce = binascii.hexlify(os.urandom(8)).decode('ascii')
+    NONCES[email] = nonce
+
     auth_url = '%s/auth?%s' % (
         META['portier_origin'],
         parse.urlencode({
             'login_hint': email,
             'scope': 'openid email',
+            'nonce': nonce,
             'response_type': 'id_token',
             'client_id': META['rp_origin'],
             'redirect_uri': '%s/verify' % META['rp_origin']
@@ -126,6 +136,11 @@ def get_verified_email(token):
     sub = payload['sub']
     if not re.match('.+@.+', sub):  # <-- TODO: Use a proper parser.
         return {'error': 'Invalid email: %s' % sub}
+
+    # Make sure the nonce cannot be used on further attempts.
+    nonce = NONCES.pop(sub, None)
+    if not nonce or payload['nonce'] != nonce:
+        return {'error': 'Session expired'}
 
     return {'email': payload['sub']}
 
