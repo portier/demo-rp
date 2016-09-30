@@ -30,6 +30,14 @@ def template(tpl, status=200, **vars):
     return 200, headers, src.encode('utf-8')
 
 
+def parse_post_body(env):
+    data = env['wsgi.input'].read(int(env['CONTENT_LENGTH']))
+    params = {}
+    for key, values in parse.parse_qs(data).items():
+        params[key.decode('ascii')] = [v.decode('ascii') for v in values]
+    return params
+
+
 def index(env):
     return template('template/index', **META)
 
@@ -39,8 +47,7 @@ def login(env):
     if env['REQUEST_METHOD'] != 'POST':
         return 400, {}, b''
 
-    body = env['wsgi.input'].read(int(env['CONTENT_LENGTH']))
-    email = parse.parse_qs(body)[b'email'][0].decode('ascii')
+    email = parse_post_body(env)['email'][0]
 
     nonce = binascii.hexlify(os.urandom(8)).decode('ascii')
     NONCES[email] = nonce
@@ -64,8 +71,8 @@ def verify(env):
     if env['REQUEST_METHOD'] != 'POST':
         return 400, {}, b''
 
-    body = env['wsgi.input'].read(int(env['CONTENT_LENGTH']))
-    token = parse.parse_qs(body)[b'id_token'][0].decode('ascii')
+    token = parse_post_body(env)['id_token'][0]
+
     result = get_verified_email(token)
     if 'error' in result:
         return template('template/error', 400,
