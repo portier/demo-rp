@@ -30,8 +30,29 @@ def index(env):
 
 def login(env):
 
-    if env['REQUEST_METHOD'] == 'GET':
-        return 302, {'Location': META['rp_origin'] + '/'}, b''
+    if env['REQUEST_METHOD'] != 'POST':
+        return 400, {}, b''
+
+    body = env['wsgi.input'].read(int(env['CONTENT_LENGTH']))
+    email = parse.parse_qs(body)[b'email'][0].decode('ascii')
+
+    auth_url = '%s/auth?%s' % (
+        META['portier_origin'],
+        parse.urlencode({
+            'login_hint': email,
+            'scope': 'openid email',
+            'response_type': 'id_token',
+            'client_id': META['rp_origin'],
+            'redirect_uri': '%s/verify' % META['rp_origin']
+        })
+    )
+    return 303, {'Location': auth_url}, b''
+
+
+def verify(env):
+
+    if env['REQUEST_METHOD'] != 'POST':
+        return 400, {}, b''
 
     body = env['wsgi.input'].read(int(env['CONTENT_LENGTH']))
     token = parse.parse_qs(body)[b'id_token'][0].decode('ascii')
@@ -109,8 +130,8 @@ def get_verified_email(token):
     return {'email': payload['sub']}
 
 
-HANDLERS = {'index': index, 'login': login, 'static': static}
-STATUS = {200: '200 OK', 302: '302 Found', 400: '400 Bad Request'}
+HANDLERS = {'index': index, 'login': login, 'verify': verify, 'static': static}
+STATUS = {200: '200 OK', 303: '303 See Other', 400: '400 Bad Request'}
 
 def application(env, respond):
     pi = [] if not env['PATH_INFO'] else env['PATH_INFO'].strip('/').split('/')
