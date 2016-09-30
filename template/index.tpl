@@ -9,7 +9,7 @@
   <body>
     <p>You can log in below:</p>
     <form action="/login" method="POST">
-      <input type=email name=email placeholder="you@example.com" />
+      <input type=email name=email placeholder="you@example.com" autofocus />
       <input type=submit value="Log In" />
     </form>
     <p><small><em>Code at <a href="https://github.com/portier/demo-rp">Portier/Demo-RP</a>.</em></small></p>
