@@ -136,7 +136,7 @@ def get_verified_email(token):
         return {'error': 'Invalid token'}
 
     sub = payload['sub']
-    if not re.match('.+@.+', sub):  # <-- TODO: Use a proper parser.
+    if not re.match('.+@.+', sub):
         return {'error': 'Invalid email: %s' % sub}
 
     # Make sure the nonce cannot be used on further attempts.
