@@ -42,8 +42,8 @@ def login(env):
         return 302, {'Location': META['RP_ORIGIN'] + '/'}, b''
 
     body = env['wsgi.input'].read(int(env['CONTENT_LENGTH']))
-    jwt = parse.parse_qs(body)[b'id_token'][0].decode('ascii')
-    result = get_verified_email(jwt)
+    token = parse.parse_qs(body)[b'id_token'][0].decode('ascii')
+    result = get_verified_email(token)
     if 'error' in result:
         return template('template/error', 400,
                         error=result['error'])
@@ -68,7 +68,7 @@ def b64dec(s):
     return urlsafe_b64decode(s.encode('ascii') + b'=' * (4 - len(s) % 4))
 
 
-def get_verified_email(jwt):
+def get_verified_email(token):
     # FIXME: This blindly trusts the JWT. Need to verify:
     # [ ] header is using an appropriate signing algorithm
     # [x] signature is valid and matches a key from the LA provider's JWK Set
@@ -91,7 +91,7 @@ def get_verified_email(jwt):
     except Exception:
         return {'error': 'Problem finding keys in JWK key set.'}
 
-    raw_header, raw_payload, raw_signature = jwt.split('.')
+    raw_header, raw_payload, raw_signature = token.split('.')
     header = json.loads(b64dec(raw_header).decode('utf-8'))
     try:
         key = [k for k in keys if k['kid'] == header['kid']][0]
