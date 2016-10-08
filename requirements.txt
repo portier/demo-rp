@@ -1,1 +1,2 @@
-cryptography
+cryptography==1.*
+PyJWT==1.*

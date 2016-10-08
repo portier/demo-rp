@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives.asymmetric import rsa
 from base64 import urlsafe_b64decode
 import json
+import jwt
 from os import getenv
 import re
 from urllib import parse, request
@@ -69,14 +69,6 @@ def b64dec(s):
 
 
 def get_verified_email(token):
-    # FIXME: This blindly trusts the JWT. Need to verify:
-    # [ ] header is using an appropriate signing algorithm
-    # [x] signature is valid and matches a key from the LA provider's JWK Set
-    # [x] iss matches a trusted LA provider's origin
-    # [x] aud matches this site's origin
-    # [x] exp > (now) > iat, with some margin
-    # [-] sub is a valid email address
-
     rsp = request.urlopen(''.join((
         META['PORTIER_ORIGIN'],
         '/.well-known/openid-configuration',
@@ -91,7 +83,7 @@ def get_verified_email(token):
     except Exception:
         return {'error': 'Problem finding keys in JWK key set.'}
 
-    raw_header, raw_payload, raw_signature = token.split('.')
+    raw_header = token.split('.', 1)[0]
     header = json.loads(b64dec(raw_header).decode('utf-8'))
     try:
         key = [k for k in keys if k['kid'] == header['kid']][0]
@@ -102,38 +94,21 @@ def get_verified_email(token):
     n = int.from_bytes(b64dec(key['n']), 'big')
     pub_key = rsa.RSAPublicNumbers(e, n).public_key(default_backend())
 
-    signature = b64dec(raw_signature)
-    verifier = pub_key.verifier(signature, padding.PKCS1v15(), hashes.SHA256())
-    verifier.update(b'.'.join((
-        raw_header.encode('ascii'),
-        raw_payload.encode('ascii'),
-    )))
+    # PyJWT checks the following for us:
+    #  - header is using an appropriate signing algorithm
+    #  - signature is valid and matches pub_key
+    #  - aud matches our (the relying party) origin
+    #  - iss matches the Portier origin
+    #  - exp > (now) > nbf, and (now) > iat
+    #    (the leeway argument specifies the allowed margin for these)
     try:
-        verifier.verify()
+        payload = jwt.decode(token, pub_key,
+                             algorithms=['RS256'],
+                             audience=META['RP_ORIGIN'],
+                             issuer=META['PORTIER_ORIGIN'],
+                             leeway=3 * 60)
     except Exception:
-        return {'error': 'Invalid signature'}
-
-    payload = json.loads(b64dec(raw_payload).decode('utf-8'))
-    iss = payload['iss']
-    known_iss = META['PORTIER_ORIGIN']
-    if iss != known_iss:
-        return {'error':
-                'Untrusted issuer. Expected %s, got %s' % (known_iss, iss)}
-
-    aud = payload['aud']
-    known_aud = META['RP_ORIGIN']
-    if aud != known_aud:
-        return {'error':
-                'Audience mismatch. Expected %s, got %s' % (known_aud, aud)}
-
-    iat = payload['iat']
-    exp = payload['exp']
-    now = int(time())
-    slack = 3 * 60  # 3 minutes
-    currently_valid = (iat - slack) < now < (exp + slack)
-    if not currently_valid:
-        return {'error':
-                'Timestamp error. iat %d < now %d < exp %d' % (iat, now, exp)}
+        return {'error': 'Invalid token'}
 
     sub = payload['sub']
     if not re.match('.+@.+', sub):  # <-- TODO: Use a proper parser.
