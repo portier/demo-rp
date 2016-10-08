@@ -3,14 +3,9 @@
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 from base64 import urlsafe_b64decode
-import binascii
-import json
-import jwt
-import re
 from urllib import parse, request
-from time import time
 from wsgiref import simple_server
-import os, mimetypes, html
+import binascii, html, json, jwt, mimetypes, os, re
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 
