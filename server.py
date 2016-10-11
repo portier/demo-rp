@@ -17,7 +17,7 @@ import jwt
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 
-META = json.load(open(os.path.join(DIR, 'config.json')))
+CONFIG = json.load(open(os.path.join(DIR, 'config.json')))
 
 # Our example nonce storage is a dict indexed by email. This works for our very
 # basic single-process server, but normally you'd store these in a database or
@@ -38,14 +38,14 @@ def login():
     NONCES[email] = nonce
 
     auth_url = '%s/auth?%s' % (
-        META['portier_origin'],
+        CONFIG['portier_origin'],
         urlencode({
             'login_hint': email,
             'scope': 'openid email',
             'nonce': nonce,
             'response_type': 'id_token',
-            'client_id': META['rp_origin'],
-            'redirect_uri': '%s/verify' % META['rp_origin']
+            'client_id': CONFIG['rp_origin'],
+            'redirect_uri': '%s/verify' % CONFIG['rp_origin']
         })
     )
     return redirect(auth_url)
@@ -77,7 +77,7 @@ def b64dec(s):
 
 def get_verified_email(token):
     rsp = urlopen(''.join((
-        META['portier_origin'],
+        CONFIG['portier_origin'],
         '/.well-known/openid-configuration',
     )))
     config = json.loads(rsp.read().decode('utf-8'))
@@ -111,8 +111,8 @@ def get_verified_email(token):
     try:
         payload = jwt.decode(token, pub_key,
                              algorithms=['RS256'],
-                             audience=META['rp_origin'],
-                             issuer=META['portier_origin'],
+                             audience=CONFIG['rp_origin'],
+                             issuer=CONFIG['portier_origin'],
                              leeway=3 * 60)
     except Exception:
         return {'error': 'Invalid token'}
@@ -130,5 +130,5 @@ def get_verified_email(token):
 
 
 if __name__ == '__main__':
-    host, port = urlparse(META['rp_origin']).netloc.split(':')
+    host, port = urlparse(CONFIG['rp_origin']).netloc.split(':')
     run(host=host, port=port)
