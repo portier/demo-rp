@@ -9,7 +9,7 @@ import os
 import re
 
 from bottle import (
-    Response, get, post, redirect, request, run, static_file, template
+    get, post, redirect, request, response, run, static_file, template
 )
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -27,7 +27,7 @@ NONCES = {}
 
 @get('/')
 def index():
-    return Response(template('index', **META))
+    return template('index', **META)
 
 
 @post('/login')
@@ -57,12 +57,13 @@ def verify():
 
     result = get_verified_email(token)
     if 'error' in result:
-        return Response(template('error', error=result['error']), 400)
+        response.status = 400
+        return template('error', error=result['error'])
 
     # At this stage, the user is verified to own the email address. This is
     # where you'd set a cookie to maintain a session in your app. Be sure to
     # restrict the cookie to your secure origin, with the http-only flag set.
-    return Response(template('verified', email=result['email']))
+    return template('verified', email=result['email'])
 
 
 @get('/static/<path:path>')
