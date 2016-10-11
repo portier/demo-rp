@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.asymmetric import rsa
 from base64 import urlsafe_b64decode
 from urllib import parse, request
 from wsgiref import simple_server
-import binascii, html, json, jwt, mimetypes, os, re
+import binascii
+import html
+import json
+import mimetypes
+import os
+import re
+
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric import rsa
+import jwt
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -15,6 +22,7 @@ META = json.load(open(os.path.join(DIR, 'config.json')))
 # basic single-process server, but normally you'd store these in a database or
 # in the session data.
 NONCES = {}
+
 
 def template(tpl, status=200, **vars):
     with open(os.path.join(DIR, tpl) + '.tpl') as f:
@@ -149,6 +157,7 @@ def get_verified_email(token):
 
 HANDLERS = {'index': index, 'login': login, 'verify': verify, 'static': static}
 STATUS = {200: '200 OK', 303: '303 See Other', 400: '400 Bad Request'}
+
 
 def application(env, respond):
     pi = [] if not env['PATH_INFO'] else env['PATH_INFO'].strip('/').split('/')
