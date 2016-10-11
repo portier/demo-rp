@@ -2,7 +2,6 @@
 
 from base64 import urlsafe_b64decode
 from urllib import parse, request
-from wsgiref import simple_server
 import binascii
 import json
 import mimetypes
@@ -163,4 +162,4 @@ def application(env, respond):
 
 if __name__ == '__main__':
     host, port = parse.urlparse(META['rp_origin']).netloc.split(':')
-    simple_server.make_server(host, int(port), application).serve_forever()
+    bottle.run(app=application, host=host, port=port)
