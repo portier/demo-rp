@@ -4,7 +4,6 @@ from base64 import urlsafe_b64decode
 from urllib import parse, request
 from wsgiref import simple_server
 import binascii
-import html
 import json
 import mimetypes
 import os
@@ -12,6 +11,7 @@ import re
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
+import bottle
 import jwt
 
 DIR = os.path.dirname(os.path.abspath(__file__))
@@ -24,13 +24,9 @@ META = json.load(open(os.path.join(DIR, 'config.json')))
 NONCES = {}
 
 
-def template(tpl, status=200, **vars):
-    with open(os.path.join(DIR, tpl) + '.tpl') as f:
-        src = f.read()
-    for k, v in vars.items():
-        src = src.replace('{{ %s }}' % k, html.escape(v, True))
+def template(path, status=200, **kwargs):
     headers = {'Content-Type': 'text/html; charset=utf-8'}
-    return 200, headers, src.encode('utf-8')
+    return status, headers, bottle.template(path, **kwargs).encode('utf-8')
 
 
 def parse_post_body(env):
