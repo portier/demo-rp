@@ -9,7 +9,7 @@ import os
 import re
 
 from bottle import (
-    get, post, redirect, request, response, run, static_file, template
+    Bottle, redirect, request, response, static_file, template
 )
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -24,13 +24,15 @@ CONFIG = json.load(open(os.path.join(DIR, 'config.json')))
 # in the session data.
 NONCES = {}
 
+app = Bottle()
 
-@get('/')
+
+@app.get('/')
 def index():
     return template('index')
 
 
-@post('/login')
+@app.post('/login')
 def login():
     email = request.forms['email']
 
@@ -51,7 +53,7 @@ def login():
     return redirect(auth_url)
 
 
-@post('/verify')
+@app.post('/verify')
 def verify():
     token = request.forms['id_token']
 
@@ -66,7 +68,7 @@ def verify():
     return template('verified', email=result['email'])
 
 
-@get('/static/<path:path>')
+@app.get('/static/<path:path>')
 def static(path):
     return static_file(path, os.path.join(DIR, 'static'))
 
@@ -131,4 +133,4 @@ def get_verified_email(token):
 
 if __name__ == '__main__':
     host, port = urlparse(CONFIG['rp_origin']).netloc.split(':')
-    run(host=host, port=port)
+    app.run(host=host, port=port)
