@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 from base64 import urlsafe_b64decode
+from datetime import datetime, timedelta
 from urllib.parse import urlencode, urlparse
 from urllib.request import urlopen
-import binascii
+from uuid import uuid4
 import json
 import os
 import re
@@ -19,9 +20,14 @@ DIR = os.path.dirname(os.path.abspath(__file__))
 
 CONFIG = json.load(open(os.path.join(DIR, 'config.json')))
 
-# Our example nonce storage is a dict indexed by email. This works for our very
-# basic single-process server, but normally you'd store these in a database or
-# in the session data.
+# Identity tokens expire after a few minutes, but might be reused while valid.
+#
+# To defend against replay attacks, sites can optionally supply a nonce during
+# authentication which is echoed back in the identity token.
+#
+# For simplicity, this example uses a plain Python dict. This approach breaks
+# in multi-threaded environments. In production, use a real database for this.
+
 NONCES = {}
 
 app = Bottle()
@@ -36,8 +42,9 @@ def index():
 def login():
     email = request.forms['email']
 
-    nonce = binascii.hexlify(os.urandom(8)).decode('ascii')
-    NONCES[email] = nonce
+    nonce = uuid4().hex
+    expiry = datetime.utcnow() + timedelta(minutes=30)
+    NONCES[nonce] = expiry.timestamp()
 
     auth_url = '%s/auth?%s' % (
         CONFIG['portier_origin'],
@@ -123,9 +130,15 @@ def get_verified_email(token):
     if not re.match('.+@.+', sub):
         return {'error': 'Invalid email: %s' % sub}
 
-    # Make sure the nonce cannot be used on further attempts.
-    nonce = NONCES.pop(sub, None)
-    if not nonce or payload['nonce'] != nonce:
+    # Garbage collect expired nonces
+    global NONCES
+    NONCES = {nonce: expiry for nonce, expiry in NONCES.items()
+              if expiry >= datetime.utcnow().timestamp()}
+
+    # Invalidate this nonce by removing it from NONCES
+    try:
+        NONCES.pop(payload['nonce'])
+    except KeyError:
         return {'error': 'Session expired'}
 
     return {'email': payload['sub']}
