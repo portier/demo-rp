@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 
 from base64 import urlsafe_b64decode
-from urllib import parse, request
+from urllib.parse import urlencode, urlparse
+from urllib.request import urlopen
 import binascii
 import json
-import mimetypes
 import os
 import re
 
+from bottle import (
+    Response, get, post, redirect, request, run, static_file, template
+)
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
-import bottle
 import jwt
 
 DIR = os.path.dirname(os.path.abspath(__file__))
@@ -23,36 +25,21 @@ META = json.load(open(os.path.join(DIR, 'config.json')))
 NONCES = {}
 
 
-def template(path, status=200, **kwargs):
-    headers = {'Content-Type': 'text/html; charset=utf-8'}
-    return status, headers, bottle.template(path, **kwargs).encode('utf-8')
+@get('/')
+def index():
+    return Response(template('index', **META))
 
 
-def parse_post_body(env):
-    data = env['wsgi.input'].read(int(env['CONTENT_LENGTH']))
-    params = {}
-    for key, values in parse.parse_qs(data).items():
-        params[key.decode('ascii')] = [v.decode('ascii') for v in values]
-    return params
-
-
-def index(env):
-    return template('index', **META)
-
-
-def login(env):
-
-    if env['REQUEST_METHOD'] != 'POST':
-        return 400, {}, b''
-
-    email = parse_post_body(env)['email'][0]
+@post('/login')
+def login():
+    email = request.forms['email']
 
     nonce = binascii.hexlify(os.urandom(8)).decode('ascii')
     NONCES[email] = nonce
 
     auth_url = '%s/auth?%s' % (
         META['portier_origin'],
-        parse.urlencode({
+        urlencode({
             'login_hint': email,
             'scope': 'openid email',
             'nonce': nonce,
@@ -61,33 +48,26 @@ def login(env):
             'redirect_uri': '%s/verify' % META['rp_origin']
         })
     )
-    return 303, {'Location': auth_url}, b''
+    return redirect(auth_url)
 
 
-def verify(env):
-
-    if env['REQUEST_METHOD'] != 'POST':
-        return 400, {}, b''
-
-    token = parse_post_body(env)['id_token'][0]
+@post('/verify')
+def verify():
+    token = request.forms['id_token']
 
     result = get_verified_email(token)
     if 'error' in result:
-        return template('error', 400, error=result['error'])
+        return Response(template('error', error=result['error']), 400)
 
     # At this stage, the user is verified to own the email address. This is
     # where you'd set a cookie to maintain a session in your app. Be sure to
     # restrict the cookie to your secure origin, with the http-only flag set.
-    return template('verified', email=result['email'])
+    return Response(template('verified', email=result['email']))
 
 
-def static(env):
-    pi = [] if not env['PATH_INFO'] else env['PATH_INFO'].strip('/').split('/')
-    fn = os.path.join(DIR, 'static', '/'.join(pi[1:]))
-    type = mimetypes.guess_type(fn)[0]
-    with open(fn, 'rb') as f:
-        src = f.read()
-    return 200, {'Content-Type': type}, src
+@get('/static/<path:path>')
+def static(path):
+    return static_file(path, os.path.join(DIR, 'static'))
 
 
 def b64dec(s):
@@ -95,7 +75,7 @@ def b64dec(s):
 
 
 def get_verified_email(token):
-    rsp = request.urlopen(''.join((
+    rsp = urlopen(''.join((
         META['portier_origin'],
         '/.well-known/openid-configuration',
     )))
@@ -103,7 +83,7 @@ def get_verified_email(token):
     if 'jwks_uri' not in config:
         return {'error': 'No jwks_uri in discovery document.'}
 
-    rsp = request.urlopen(config['jwks_uri'])
+    rsp = urlopen(config['jwks_uri'])
     try:
         keys = json.loads(rsp.read().decode('utf-8'))['keys']
     except Exception:
@@ -148,18 +128,6 @@ def get_verified_email(token):
     return {'email': payload['sub']}
 
 
-HANDLERS = {'index': index, 'login': login, 'verify': verify, 'static': static}
-STATUS = {200: '200 OK', 303: '303 See Other', 400: '400 Bad Request'}
-
-
-def application(env, respond):
-    pi = [] if not env['PATH_INFO'] else env['PATH_INFO'].strip('/').split('/')
-    handler = pi[0] if pi and pi[0] else 'index'
-    status, headers, content = HANDLERS[handler](env)
-    respond(STATUS[status], list(headers.items()))
-    return [content]
-
-
 if __name__ == '__main__':
-    host, port = parse.urlparse(META['rp_origin']).netloc.split(':')
-    bottle.run(app=application, host=host, port=port)
+    host, port = urlparse(META['rp_origin']).netloc.split(':')
+    run(host=host, port=port)
