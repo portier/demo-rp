@@ -38,7 +38,7 @@ def parse_post_body(env):
 
 
 def index(env):
-    return template('template/index', **META)
+    return template('index', **META)
 
 
 def login(env):
@@ -74,14 +74,12 @@ def verify(env):
 
     result = get_verified_email(token)
     if 'error' in result:
-        return template('template/error', 400,
-                        error=result['error'])
+        return template('error', 400, error=result['error'])
 
     # At this stage, the user is verified to own the email address. This is
     # where you'd set a cookie to maintain a session in your app. Be sure to
     # restrict the cookie to your secure origin, with the http-only flag set.
-    return template('template/verified',
-                    email=result['email'])
+    return template('verified', email=result['email'])
 
 
 def static(env):
