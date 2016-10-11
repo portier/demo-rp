@@ -27,7 +27,7 @@ NONCES = {}
 
 @get('/')
 def index():
-    return template('index', **META)
+    return template('index')
 
 
 @post('/login')
