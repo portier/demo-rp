@@ -6,9 +6,8 @@ implemented in Python 3. To get started:
 
 .. code-block:: bash
 
-    pip install virtualenv
-    virtualenv --python=python3.5 venv
-    source venv/bin/activate
+    python3 -m venv ./venv
+    source ./venv/bin/activate
 
     pip install -r requirements.txt
 
