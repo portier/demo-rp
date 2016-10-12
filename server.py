@@ -40,12 +40,16 @@ def index():
 
 @app.post('/login')
 def login():
+    # Read the user's email address from the POSTed form data
     email = request.forms['email']
 
+    # Generate and store a nonce to uniquely identify this login request.
+    # This allows us to prevent identity tokens from being used more than once.
     nonce = uuid4().hex
     expiry = datetime.utcnow() + timedelta(minutes=30)
     NONCES[nonce] = expiry.timestamp()
 
+    # Forward the user to the broker, along with all necessary parameters
     auth_url = '%s/auth?%s' % (
         CONFIG['portier_origin'],
         urlencode({
@@ -62,6 +66,7 @@ def login():
 
 @app.post('/verify')
 def verify():
+    # Read the signed identity token from the POSTed form data
     token = request.forms['id_token']
 
     try:
@@ -85,40 +90,64 @@ def b64dec(s):
     return urlsafe_b64decode(s.encode('ascii') + b'=' * (4 - len(s) % 4))
 
 
-def get_verified_email(token):
-    # Discover where the Broker's public keys are located
-    rsp = urlopen(''.join((
-        CONFIG['portier_origin'],
-        '/.well-known/openid-configuration',
-    )))
-    config = json.loads(rsp.read().decode('utf-8'))
-    if 'jwks_uri' not in config:
+def discover_keys(broker):
+    """Discover and return the broker's public keys"""""
+
+    # Fetch the OpenID Connect Dynamic Discovery document
+    res = urlopen(''.join((broker, '/.well-known/openid-configuration')))
+    discovery = json.loads(res.read().decode('utf-8'))
+    if 'jwks_uri' not in discovery:
         raise RuntimeError('No jwks_uri in discovery document')
 
-    rsp = urlopen(config['jwks_uri'])
-    try:
-        keys = json.loads(rsp.read().decode('utf-8'))['keys']
-    except Exception:
+    # Fetch the JWK Set document
+    res = urlopen(discovery['jwks_uri'])
+    jwks = json.loads(res.read().decode('utf-8'))
+    if 'keys' not in jwks:
         raise RuntimeError('No keys found in JWK Set')
 
-    raw_header = token.split('.', 1)[0]
-    header = json.loads(b64dec(raw_header).decode('utf-8'))
-    try:
-        key = [k for k in keys if k['kid'] == header['kid']][0]
-    except Exception:
-        raise RuntimeError('Cannot find key with ID %s' % header['kid'])
+    # Return the discovered keys as a Key ID -> RSA Public Key dictionary
+    return {key['kid']: jwk_to_rsa(key) for key in jwks['keys']
+            if key['alg'] == 'RS256'}
 
+
+def jwk_to_rsa(key):
+    """Convert a deserialized JWK into an RSA Public Key instance"""
     e = int.from_bytes(b64dec(key['e']), 'big')
     n = int.from_bytes(b64dec(key['n']), 'big')
-    pub_key = rsa.RSAPublicNumbers(e, n).public_key(default_backend())
+    return rsa.RSAPublicNumbers(e, n).public_key(default_backend())
 
-    # PyJWT checks the following for us:
-    #  - header is using an appropriate signing algorithm
-    #  - signature is valid and matches pub_key
-    #  - aud matches our (the relying party) origin
-    #  - iss matches the Portier origin
-    #  - exp > (now) > nbf, and (now) > iat
-    #    (the leeway argument specifies the allowed margin for these)
+
+def get_verified_email(token):
+    # Discover and deserialize the key used to sign this JWT
+    keys = discover_keys(CONFIG['portier_origin'])
+
+    raw_header, _, _ = token.partition('.')
+    header = json.loads(b64dec(raw_header).decode('utf-8'))
+    try:
+        pub_key = keys[header['kid']]
+    except KeyError:
+        raise RuntimeError('Cannot find key with ID %s' % header['kid'])
+
+    # We must ensure that all JWTs have a valid cryptographic signature.
+    # Portier only supports OpenID Connect's default signing algorithm: RS256.
+    #
+    # OpenID Connect's JWTs also have five required claims that we must verify:
+    #
+    # - `aud` (audience) must match this website's origin.
+    # - `iss` (issuer) must match the broker's origin.
+    # - `exp` (expires) must be in the future.
+    # - `iat` (issued at) must be in the past.
+    # - `sub` (subject) must be an email address.
+    #
+    # The following, optional claims may also appear in the JWT payload:
+    #
+    # - `nbf` (not before) must be in the past.
+    # - `nonce` (cryptographic nonce) must not have been seen previously.
+    #
+    # We delegate to PyJWT, which checks signatures and validates all claims
+    # except `sub` and `nonce`. Timestamps are allowed a small margin of error.
+    #
+    # More info at: https://github.com/jpadilla/pyjwt
     try:
         payload = jwt.decode(token, pub_key,
                              algorithms=['RS256'],
@@ -128,11 +157,12 @@ def get_verified_email(token):
     except Exception as exc:
         raise RuntimeError('Invalid JWT: %s' % exc)
 
-    sub = payload['sub']
-    if not re.match('.+@.+', sub):
-        raise RuntimeError('Invalid email address: %s' % sub)
+    # Check that the subject looks like an email address
+    subject = payload['sub']
+    if not re.match('.+@.+', subject):
+        raise RuntimeError('Invalid email address: %s' % subject)
 
-    # Garbage collect expired nonces
+    # Remove / garbage collect expired nonces
     global NONCES
     NONCES = {nonce: expiry for nonce, expiry in NONCES.items()
               if expiry >= datetime.utcnow().timestamp()}
@@ -143,7 +173,7 @@ def get_verified_email(token):
     except KeyError:
         raise RuntimeError('Invalid or expired nonce')
 
-    return payload['sub']
+    return subject
 
 
 if __name__ == '__main__':
