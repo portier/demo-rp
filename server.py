@@ -22,7 +22,7 @@ CONFIG = json.load(open(os.path.join(DIR, 'config.json')))
 
 # Identity tokens expire after a few minutes, but might be reused while valid.
 #
-# To defend against replay attacks, sites can optionally supply a nonce during
+# To defend against replay attacks, sites must supply a nonce during
 # authentication which is echoed back in the identity token.
 #
 # For simplicity, this example uses a plain Python dict. This approach breaks
@@ -133,18 +133,18 @@ def get_verified_email(token):
     # We must ensure that all JWTs have a valid cryptographic signature.
     # Portier only supports OpenID Connect's default signing algorithm: RS256.
     #
-    # OpenID Connect's JWTs also have five required claims that we must verify:
+    # OpenID Connect's JWTs also have six required claims that we must verify:
     #
     # - `aud` (audience) must match this website's origin.
     # - `iss` (issuer) must match the broker's origin.
     # - `exp` (expires) must be in the future.
     # - `iat` (issued at) must be in the past.
     # - `sub` (subject) must be an email address.
+    # - `nonce` (cryptographic nonce) must not have been seen previously.
     #
     # The following, optional claims may also appear in the JWT payload:
     #
     # - `nbf` (not before) must be in the past.
-    # - `nonce` (cryptographic nonce) must not have been seen previously.
     #
     # We delegate to PyJWT, which checks signatures and validates all claims
     # except `sub` and `nonce`. Timestamps are allowed a small margin of error.
