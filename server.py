@@ -64,15 +64,16 @@ def login():
 def verify():
     token = request.forms['id_token']
 
-    result = get_verified_email(token)
-    if 'error' in result:
+    try:
+        email = get_verified_email(token)
+    except RuntimeError as exc:
         response.status = 400
-        return template('error', error=result['error'])
+        return template('error', error=exc)
 
     # At this stage, the user is verified to own the email address. This is
     # where you'd set a cookie to maintain a session in your app. Be sure to
     # restrict the cookie to your secure origin, with the http-only flag set.
-    return template('verified', email=result['email'])
+    return template('verified', email=email)
 
 
 @app.get('/static/<path:path>')
@@ -85,26 +86,27 @@ def b64dec(s):
 
 
 def get_verified_email(token):
+    # Discover where the Broker's public keys are located
     rsp = urlopen(''.join((
         CONFIG['portier_origin'],
         '/.well-known/openid-configuration',
     )))
     config = json.loads(rsp.read().decode('utf-8'))
     if 'jwks_uri' not in config:
-        return {'error': 'No jwks_uri in discovery document.'}
+        raise RuntimeError('No jwks_uri in discovery document')
 
     rsp = urlopen(config['jwks_uri'])
     try:
         keys = json.loads(rsp.read().decode('utf-8'))['keys']
     except Exception:
-        return {'error': 'Problem finding keys in JWK key set.'}
+        raise RuntimeError('No keys found in JWK Set')
 
     raw_header = token.split('.', 1)[0]
     header = json.loads(b64dec(raw_header).decode('utf-8'))
     try:
         key = [k for k in keys if k['kid'] == header['kid']][0]
     except Exception:
-        return {'error': 'Cannot find key with ID %s.' % header['kid']}
+        raise RuntimeError('Cannot find key with ID %s' % header['kid'])
 
     e = int.from_bytes(b64dec(key['e']), 'big')
     n = int.from_bytes(b64dec(key['n']), 'big')
@@ -123,12 +125,12 @@ def get_verified_email(token):
                              audience=CONFIG['rp_origin'],
                              issuer=CONFIG['portier_origin'],
                              leeway=3 * 60)
-    except Exception:
-        return {'error': 'Invalid token'}
+    except Exception as exc:
+        raise RuntimeError('Invalid JWT: %s' % exc)
 
     sub = payload['sub']
     if not re.match('.+@.+', sub):
-        return {'error': 'Invalid email: %s' % sub}
+        raise RuntimeError('Invalid email address: %s' % sub)
 
     # Garbage collect expired nonces
     global NONCES
@@ -139,9 +141,9 @@ def get_verified_email(token):
     try:
         NONCES.pop(payload['nonce'])
     except KeyError:
-        return {'error': 'Session expired'}
+        raise RuntimeError('Invalid or expired nonce')
 
-    return {'email': payload['sub']}
+    return payload['sub']
 
 
 if __name__ == '__main__':
