@@ -86,8 +86,10 @@ def static(path):
     return static_file(path, os.path.join(DIR, 'static'))
 
 
-def b64dec(s):
-    return urlsafe_b64decode(s.encode('ascii') + b'=' * (4 - len(s) % 4))
+def b64dec(string):
+    # Pad the base64 string with '=' to a multiple of 4 characters
+    padding = '=' * ((4 - len(string) % 4) % 4)
+    return urlsafe_b64decode(string + padding)
 
 
 def discover_keys(broker):
