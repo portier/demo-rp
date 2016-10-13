@@ -8,13 +8,27 @@ implemented in Python 3. To get started:
 
     python3 -m venv ./venv
     ./venv/bin/pip install -r requirements.txt
-    cp config.json.dist config.json
     ./venv/bin/python3 ./server.py
 
-The server runs on port 8000 by default, which can be changed by editing
-``config.json``. The template works fine for local development, with the
-Portier broker running locally as well.
+Configuration
+-------------
 
-The primary use of this implementation is testing the `broker`_ code.
+By default, this demo listens on ``http://localhost:8000`` and delegates to the
+production `Portier Broker`_ at ``https://broker.portier.io``. This should be
+sufficient for local development and testing of this demo.
 
-.. _broker: https://github.com/portier/portier-broker
+To override these values, you can either modify the ``config.ini`` file (there
+is an example in ``config.ini.dist``), or set environment variables.
+
+Environment variables always take precedence over ``config.ini``.
+
+============== ==================== =========================
+``config.ini`` Environment Variable Default Value
+============== ==================== =========================
+ListenIP       DEMO_LISTEN_IP       127.0.0.1
+ListenPort     DEMO_LISTEN_PORT     8000
+WebsiteURL     DEMO_WEBSITE_URL     http://localhost:8000
+BrokerURL      DEMO_BROKER_URL      https://broker.portier.io
+============== ==================== =========================
+
+.. _Portier Broker: https://github.com/portier/portier-broker

@@ -1,0 +1,17 @@
+[PortierDemo]
+
+# What IP address should this server listen on?
+# Default: 127.0.0.1
+ListenIP = 127.0.0.1
+
+# What TCP port should this server on?
+# Default: 8000
+ListenPort = 8000
+
+# What user-facing URL is this website accessible at?
+# Default: http://localhost:8000
+WebsiteURL = http://localhost:8000
+
+# What is the full URL, without a trailing slash, for the Portier Broker?
+# Default: https://broker.portier.io
+BrokerURL  = https://broker.portier.io

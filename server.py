@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 from base64 import urlsafe_b64decode
-from urllib.parse import urlencode, urlparse
+from configparser import ConfigParser
+from urllib.parse import urlencode
 from urllib.request import urlopen
 from uuid import uuid4
 import json
@@ -18,7 +19,26 @@ import jwt
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 
-CONFIG = json.load(open(os.path.join(DIR, 'config.json')))
+CONFIG_META = (
+    # Environment Var    Config Key    Default Value
+    ('DEMO_LISTEN_IP',   'ListenIP',   '127.0.0.1'),
+    ('DEMO_LISTEN_PORT', 'ListenPort', '8000'),
+    ('DEMO_WEBSITE_URL', 'WebsiteURL', 'http://localhost:8000'),
+    ('DEMO_BROKER_URL',  'BrokerURL',  'https://broker.portier.io'),
+)
+
+CONFIG_PARSER = ConfigParser(default_section='PortierDemo',
+                             defaults={k: v for _, k, v in CONFIG_META})
+
+# Override defaults with values in config.ini
+CONFIG_PARSER.read('config.ini')
+
+# Override values in config.ini with environment variables
+for var, key, _ in CONFIG_META:
+    if var in os.environ:
+        CONFIG_PARSER[CONFIG_PARSER.default_section][key] = os.environ[var]
+
+SETTINGS = CONFIG_PARSER[CONFIG_PARSER.default_section]
 
 # Identity tokens expire after a few minutes, but might be reused while valid.
 #
@@ -54,14 +74,14 @@ def login():
 
     # Forward the user to the broker, along with all necessary parameters
     auth_url = '%s/auth?%s' % (
-        CONFIG['portier_origin'],
+        SETTINGS['BrokerURL'],
         urlencode({
             'login_hint': email,
             'scope': 'openid email',
             'nonce': nonce,
             'response_type': 'id_token',
-            'client_id': CONFIG['rp_origin'],
-            'redirect_uri': '%s/verify' % CONFIG['rp_origin']
+            'client_id': SETTINGS['WebsiteURL'],
+            'redirect_uri': '%s/verify' % SETTINGS['WebsiteURL']
         })
     )
     return redirect(auth_url)
@@ -124,7 +144,7 @@ def jwk_to_rsa(key):
 
 def get_verified_email(token):
     # Discover and deserialize the key used to sign this JWT
-    keys = discover_keys(CONFIG['portier_origin'])
+    keys = discover_keys(SETTINGS['BrokerURL'])
 
     raw_header, _, _ = token.partition('.')
     header = json.loads(b64dec(raw_header).decode('utf-8'))
@@ -156,8 +176,8 @@ def get_verified_email(token):
     try:
         payload = jwt.decode(token, pub_key,
                              algorithms=['RS256'],
-                             audience=CONFIG['rp_origin'],
-                             issuer=CONFIG['portier_origin'],
+                             audience=SETTINGS['WebsiteURL'],
+                             issuer=SETTINGS['BrokerURL'],
                              leeway=3 * 60)
     except Exception as exc:
         raise RuntimeError('Invalid JWT: %s' % exc)
@@ -175,5 +195,9 @@ def get_verified_email(token):
 
 
 if __name__ == '__main__':
-    host, port = urlparse(CONFIG['rp_origin']).netloc.split(':')
-    app.run(host=host, port=port)
+    print("Starting Portier Demo...")
+    print("-> Demo URL: %s" % SETTINGS['WebsiteURL'])
+    print("-> Broker URL: %s" % SETTINGS['BrokerURL'])
+    print()
+
+    app.run(host=SETTINGS['ListenIP'], port=SETTINGS['ListenPort'])
