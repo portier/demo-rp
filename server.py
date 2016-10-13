@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from base64 import urlsafe_b64decode
-from datetime import datetime, timedelta
 from urllib.parse import urlencode, urlparse
 from urllib.request import urlopen
 from uuid import uuid4
@@ -14,6 +13,7 @@ from bottle import (
 )
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
+import fakeredis
 import jwt
 
 DIR = os.path.dirname(os.path.abspath(__file__))
@@ -25,10 +25,8 @@ CONFIG = json.load(open(os.path.join(DIR, 'config.json')))
 # To defend against replay attacks, sites must supply a nonce during
 # authentication which is echoed back in the identity token.
 #
-# For simplicity, this example uses a plain Python dict. This approach breaks
-# in multi-threaded environments. In production, use a real database for this.
-
-NONCES = {}
+# For simplicity, this demo uses a fake Redis instance. Use a real one in prod.
+REDIS = fakeredis.FakeStrictRedis()
 
 app = Bottle()
 
@@ -46,8 +44,13 @@ def login():
     # Generate and store a nonce to uniquely identify this login request.
     # This allows us to prevent identity tokens from being used more than once.
     nonce = uuid4().hex
-    expiry = datetime.utcnow() + timedelta(minutes=30)
-    NONCES[nonce] = expiry.timestamp()
+
+    # Wrap Redis SET/EXPIRE in a MULTI/EXEC transaction to ensure both happen.
+    # Without the transaction, we risk adding a nonce but not its expiration.
+    txn = REDIS.pipeline()
+    txn.set(nonce, '')
+    txn.expire(nonce, 15 * 60)  # 15 minutes
+    txn.execute()
 
     # Forward the user to the broker, along with all necessary parameters
     auth_url = '%s/auth?%s' % (
@@ -164,15 +167,8 @@ def get_verified_email(token):
     if not re.match('.+@.+', subject):
         raise RuntimeError('Invalid email address: %s' % subject)
 
-    # Remove / garbage collect expired nonces
-    global NONCES
-    NONCES = {nonce: expiry for nonce, expiry in NONCES.items()
-              if expiry >= datetime.utcnow().timestamp()}
-
-    # Invalidate this nonce by removing it from NONCES
-    try:
-        NONCES.pop(payload['nonce'])
-    except KeyError:
+    # Invalidate this nonce
+    if not REDIS.delete(payload['nonce']):
         raise RuntimeError('Invalid or expired nonce')
 
     return subject

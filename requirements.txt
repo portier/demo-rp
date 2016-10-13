@@ -1,3 +1,4 @@
 PyJWT==1.*
 bottle==0.12.*
 cryptography==1.*
+fakeredis==0.8.*
