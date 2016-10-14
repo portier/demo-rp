@@ -223,4 +223,5 @@ if __name__ == '__main__':
     print("-> Redis: %s" % REDIS)
     print()
 
-    app.run(host=SETTINGS['ListenIP'], port=SETTINGS['ListenPort'])
+    app.run(host=SETTINGS['ListenIP'], port=SETTINGS['ListenPort'],
+            server='aiohttp')

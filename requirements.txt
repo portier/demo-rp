@@ -1,5 +1,6 @@
+https://github.com/bottlepy/bottle/archive/7c1c1ca314f3eff8cc2deb894be5d02f7940fe3c.zip
 PyJWT==1.*
-bottle==0.12.*
+aiohttp==1.0.*
 cryptography==1.*
 fakeredis==0.8.*
 redis==2.10.*

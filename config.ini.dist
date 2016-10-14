@@ -21,7 +21,7 @@ BrokerURL  = https://broker.portier.io
 # the Redis-Py library at https://github.com/andymccurdy/redis-py
 #
 # If omitted or unset, this project defaults to using FakeRedis, which is only
-# suitable for local testing on single-threaded servers.
+# suitable for local testing.
 #
 # Default: (none - uses FakeRedis)
 RedisURL = 

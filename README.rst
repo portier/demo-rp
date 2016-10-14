@@ -1,8 +1,8 @@
 Portier Relying Party Demo
 ==========================
 
-This is a minimal Python implementation of a Portier Relying Party. It is
-implemented in Python 3. To get started:
+This is a minimal Python implementation of a Portier Relying Party.
+To get started, you need Python 3.4 or newer.
 
 .. code-block:: bash
 
