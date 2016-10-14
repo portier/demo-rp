@@ -21,7 +21,6 @@ DIR = os.path.dirname(os.path.abspath(__file__))
 
 SETTINGS = settings.load()
 
-
 # Identity tokens expire after a few minutes, but might be reused while valid.
 #
 # To defend against replay attacks, sites must supply a nonce during
@@ -41,8 +40,13 @@ def index():
     return template('index')
 
 
+@app.get('/login')
+def login_get():
+    return redirect('/')
+
+
 @app.post('/login')
-def login():
+def login_post():
     # Read the user's email address from the POSTed form data
     email = request.forms['email']
 
@@ -67,8 +71,13 @@ def login():
     return redirect(auth_url)
 
 
+@app.get('/verify')
+def verify_get():
+    return redirect('/')
+
+
 @app.post('/verify')
-def verify():
+def verify_post():
     # Read the signed identity token from the POSTed form data
     token = request.forms['id_token']
 
