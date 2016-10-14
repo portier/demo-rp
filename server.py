@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from base64 import urlsafe_b64decode
-from configparser import ConfigParser
 from datetime import timedelta
 from urllib.parse import urlencode
 from urllib.request import urlopen
@@ -10,55 +9,18 @@ import json
 import os
 import re
 
-from bottle import (
-    Bottle, redirect, request, response, static_file, template
-)
+from bottle import Bottle, redirect, request, response, static_file, template
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 import fakeredis
 import jwt
 import redis
+import settings
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 
-CONFIG_META = (
-    # Environment Var    Config Key    Default Value
-    ('DEMO_LISTEN_IP',   'ListenIP',   '127.0.0.1'),
-    ('DEMO_LISTEN_PORT', 'ListenPort', '8000'),
-    ('DEMO_WEBSITE_URL', 'WebsiteURL', 'http://localhost:8000'),
-    ('DEMO_BROKER_URL',  'BrokerURL',  'https://broker.portier.io'),
-    ('DEMO_REDIS_URL',   'RedisURL',   None),
-)
+SETTINGS = settings.load()
 
-CONFIG_PARSER = ConfigParser(default_section='PortierDemo',
-                             defaults={k: v for _, k, v in CONFIG_META})
-
-# Override defaults with values in config.ini
-CONFIG_PARSER.read('config.ini')
-
-# Override defaults with autodetected metadata on Heroku
-# ...Port
-if 'PORT' in os.environ:
-    CONFIG_PARSER[CONFIG_PARSER.default_section]['ListenIP'] = '0.0.0.0'
-    CONFIG_PARSER[CONFIG_PARSER.default_section]['ListenPort'] = os.environ['PORT'] # noqa
-
-# ...WebsiteURL
-if 'HEROKU_APP_NAME' in os.environ:
-    url = 'https://%s.herokuapp.com' % os.environ['HEROKU_APP_NAME']
-    CONFIG_PARSER[CONFIG_PARSER.default_section]['WebsiteURL'] = url
-
-# ...RedisURL
-for var in ('REDISTOGO_URL', 'REDISGREEN_URL', 'REDISCLOUD_URL', 'REDIS_URL', 'OPENREDIS_URL'): # noqa
-    if var in os.environ:
-        CONFIG_PARSER[CONFIG_PARSER.default_section]['RedisURL'] = os.environ[var]  # noqa
-        break
-
-# Override values in config.ini with environment variables
-for var, key, _ in CONFIG_META:
-    if var in os.environ:
-        CONFIG_PARSER[CONFIG_PARSER.default_section][key] = os.environ[var]
-
-SETTINGS = CONFIG_PARSER[CONFIG_PARSER.default_section]
 
 # Identity tokens expire after a few minutes, but might be reused while valid.
 #
