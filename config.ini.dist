@@ -15,3 +15,13 @@ WebsiteURL = http://localhost:8000
 # What is the full URL, without a trailing slash, for the Portier Broker?
 # Default: https://broker.portier.io
 BrokerURL  = https://broker.portier.io
+
+# (Optional) What is the URL for a Redis instance in which to store nonces?
+# The protocol may be one of redis://, rediss://, or unix:// as supported by
+# the Redis-Py library at https://github.com/andymccurdy/redis-py
+#
+# If omitted or unset, this project defaults to using FakeRedis, which is only
+# suitable for local testing on single-threaded servers.
+#
+# Default: (none - uses FakeRedis)
+RedisURL = 

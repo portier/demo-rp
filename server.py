@@ -16,6 +16,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 import fakeredis
 import jwt
+import redis
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -25,6 +26,7 @@ CONFIG_META = (
     ('DEMO_LISTEN_PORT', 'ListenPort', '8000'),
     ('DEMO_WEBSITE_URL', 'WebsiteURL', 'http://localhost:8000'),
     ('DEMO_BROKER_URL',  'BrokerURL',  'https://broker.portier.io'),
+    ('DEMO_REDIS_URL',   'RedisURL',   None),
 )
 
 CONFIG_PARSER = ConfigParser(default_section='PortierDemo',
@@ -45,8 +47,11 @@ SETTINGS = CONFIG_PARSER[CONFIG_PARSER.default_section]
 # To defend against replay attacks, sites must supply a nonce during
 # authentication which is echoed back in the identity token.
 #
-# For simplicity, this demo uses a fake Redis instance. Use a real one in prod.
-REDIS = fakeredis.FakeStrictRedis()
+# For simplicity, this demo defaults to FakeRedis. Use real Redis in prod.
+if SETTINGS['RedisURL']:
+    REDIS = redis.StrictRedis.from_url(SETTINGS['RedisURL'])
+else:
+    REDIS = fakeredis.FakeStrictRedis()
 
 app = Bottle()
 
@@ -198,6 +203,7 @@ if __name__ == '__main__':
     print("Starting Portier Demo...")
     print("-> Demo URL: %s" % SETTINGS['WebsiteURL'])
     print("-> Broker URL: %s" % SETTINGS['BrokerURL'])
+    print("-> Redis: %s" % REDIS)
     print()
 
     app.run(host=SETTINGS['ListenIP'], port=SETTINGS['ListenPort'])
