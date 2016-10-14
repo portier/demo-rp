@@ -42,7 +42,32 @@ its operations are atomic and it supports time-based expiration of data.
 For production deployments of this demo, you must provide a Redis server via the
 ``RedisURL`` setting. For local testing, this demo uses `FakeRedis`_.
 
+Deploying on Heroku
+^^^^^^^^^^^^^^^^^^^
+
+In addition to the environment variables above, this demo will attempt to detect
+available metadata when deployed on Heroku.
+
+If ``$PORT`` is set, the app will bind to ``0.0.0.0:${PORT}`` by default. This
+can be overriden by setting the ``DEMO_LISTEN_IP`` and ``DEMO_LISTEN_PORT``
+environment variables.
+
+If `Dyno Metadata`_ is enabled for your application, the ``WebsiteURL`` will
+default to the hostname ``https://${HEROKU_APP_NAME}.herokuapp.com``. This can
+still be overridden by setting the ``DEMO_WEBSITE_URL`` environment variable.
+
+If you are using `Redis To Go`_, `RedisGreen`_, `RedisCloud`_, `Heroku Redis`_,
+or `openredis`_ with your deployment, this demo will automatically detect and
+default the first provider it finds from that list. This can still be overridden
+by setting the ``DEMO_REDIS_URL`` environment variable.
+
 .. _Portier Broker: https://github.com/portier/portier-broker
 .. _FakeRedis: https://github.com/jamesls/fakeredis
 .. _Redis: http://redis.io/
 .. _nonce: https://en.wikipedia.org/wiki/Cryptographic_nonce
+.. _Dyno Metadata: https://devcenter.heroku.com/articles/dyno-metadata
+.. _Redis To Go: https://elements.heroku.com/addons/redistogo
+.. _RedisGreen: https://elements.heroku.com/addons/redisgreen
+.. _RedisCloud: https://elements.heroku.com/addons/rediscloud
+.. _Heroku Redis: https://elements.heroku.com/addons/heroku-redis
+.. _openredis: https://elements.heroku.com/addons/openredis

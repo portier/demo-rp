@@ -35,6 +35,23 @@ CONFIG_PARSER = ConfigParser(default_section='PortierDemo',
 # Override defaults with values in config.ini
 CONFIG_PARSER.read('config.ini')
 
+# Override defaults with autodetected metadata on Heroku
+# ...Port
+if 'PORT' in os.environ:
+    CONFIG_PARSER[CONFIG_PARSER.default_section]['ListenIP'] = '0.0.0.0'
+    CONFIG_PARSER[CONFIG_PARSER.default_section]['ListenPort'] = os.environ['PORT'] # noqa
+
+# ...WebsiteURL
+if 'HEROKU_APP_NAME' in os.environ:
+    url = 'https://%s.herokuapp.com' % os.environ['HEROKU_APP_NAME']
+    CONFIG_PARSER[CONFIG_PARSER.default_section]['WebsiteURL'] = url
+
+# ...RedisURL
+for var in ('REDISTOGO_URL', 'REDISGREEN_URL', 'REDISCLOUD_URL', 'REDIS_URL', 'OPENREDIS_URL'): # noqa
+    if var in os.environ:
+        CONFIG_PARSER[CONFIG_PARSER.default_section]['RedisURL'] = os.environ[var]  # noqa
+        break
+
 # Override values in config.ini with environment variables
 for var, key, _ in CONFIG_META:
     if var in os.environ:
