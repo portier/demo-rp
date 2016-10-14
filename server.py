@@ -2,6 +2,7 @@
 
 from base64 import urlsafe_b64decode
 from configparser import ConfigParser
+from datetime import timedelta
 from urllib.parse import urlencode
 from urllib.request import urlopen
 from uuid import uuid4
@@ -87,12 +88,7 @@ def login():
     # This allows us to prevent identity tokens from being used more than once.
     nonce = uuid4().hex
 
-    # Wrap Redis SET/EXPIRE in a MULTI/EXEC transaction to ensure both happen.
-    # Without the transaction, we risk adding a nonce but not its expiration.
-    txn = REDIS.pipeline()
-    txn.set(nonce, '')
-    txn.expire(nonce, 15 * 60)  # 15 minutes
-    txn.execute()
+    REDIS.setex(nonce, timedelta(minutes=15).seconds, '')
 
     # Forward the user to the broker, along with all necessary parameters
     auth_url = '%s/auth?%s' % (
