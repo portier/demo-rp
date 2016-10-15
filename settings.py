@@ -1,3 +1,5 @@
+"""Configuration parser for the Portier demo application."""
+
 from configparser import ConfigParser
 from os import environ as ENV
 
@@ -17,6 +19,17 @@ INI_SECTION = 'PortierDemo'
 
 
 def load():
+    """Determine the demo's effective configuration.
+
+    Order of precedence, from highest to lowest:
+
+    1. App-specific environment variables (``DEMO_`` ones)
+    2. Common and Heroku-specific environment variables
+    3. Values in ``config.ini``
+    4. Default values
+
+    See ``README.rst`` and ``config.ini.dist`` for more information.
+    """
     parser = ConfigParser(default_section=INI_SECTION,
                           defaults={key: val for _, key, val in META})
 
