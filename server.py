@@ -192,15 +192,24 @@ def discover_keys(broker):
         https://openid.net/specs/openid-connect-discovery-1_0.html
     .. _JWK Set: https://tools.ietf.org/html/rfc7517#section-5
     """
-    # Fetch Discovery Document
-    res = urlopen(''.join((broker, '/.well-known/openid-configuration')))
-    discovery = json.loads(res.read().decode('utf-8'))
-    if 'jwks_uri' not in discovery:
-        raise RuntimeError('No jwks_uri in discovery document')
+    # Check the cache
+    cache_key = 'jwks:' + broker
+    raw_jwks = REDIS.get(cache_key)
+    if not raw_jwks:
+        # Fetch Discovery Document
+        res = urlopen(''.join((broker, '/.well-known/openid-configuration')))
+        discovery = json.loads(res.read().decode('utf-8'))
+        if 'jwks_uri' not in discovery:
+            raise RuntimeError('No jwks_uri in discovery document')
 
-    # Fetch the JWK Set document
-    res = urlopen(discovery['jwks_uri'])
-    jwks = json.loads(res.read().decode('utf-8'))
+        # Fetch JWK Set document
+        raw_jwks = urlopen(discovery['jwks_uri']).read()
+
+        # Cache JWK Set document
+        REDIS.setex(cache_key, timedelta(minutes=5), raw_jwks)
+
+    # Decode and load the JWK Set document
+    jwks = json.loads(raw_jwks.decode('utf-8'))
     if 'keys' not in jwks:
         raise RuntimeError('No keys found in JWK Set')
 
