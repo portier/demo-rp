@@ -10,6 +10,8 @@ GET  /           Render homepage
 GET  /static/... Server static assets
 POST /login      Redirect to the broker and begin authentication
 POST /verify     Receive an id_token via the broker and complete login
+POST /logout     Clear session cookies
+GET  /logout     Display a button to POST /logout
 ================ =====================================================
 
 Attempting to ``GET /login`` or ``GET /verify`` will redirect to ``/``.
@@ -50,7 +52,12 @@ app = Bottle()
 @app.get('/')
 def index():
     """Render the homepage."""
-    return template('index')
+    # Check if the user has a session cookie
+    email = request.get_cookie('email')
+    if email:
+        return template('verified', email=email)
+    else:
+        return template('index')
 
 
 @app.get('/login')
@@ -108,8 +115,7 @@ def verify_post():
     If the token is valid and signed by a trusted broker, you can directly log
     the user into the site, just like you would if you had verified a password.
 
-    Normally, this would mean setting some kind of signed, http-only cookie.
-    This demo is lazy, and just displays and then forgets the verified address.
+    Normally, this would include setting a signed, http-only session cookie.
     """
     # Get the user's signed identity token from the HTTP POST form data
     token = request.forms['id_token']
@@ -121,8 +127,22 @@ def verify_post():
         response.status = 400
         return template('error', error=exc)
 
-    # Done logging in! Normally you'd set a session cookie here.
-    return template('verified', email=email)
+    # Done logging in! Set a session cookie.
+    response.set_cookie('email', email, httponly=True)
+    return redirect('/')
+
+
+@app.post('/logout')
+def logout_post():
+    """Clear session cookies."""
+    response.delete_cookie('email')
+    return redirect('/')
+
+
+@app.get('/logout')
+def logout_get():
+    """Display a button that POSTS to /logout."""
+    return template('logout')
 
 
 @app.get('/static/<path:path>')
