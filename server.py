@@ -53,7 +53,7 @@ app = Bottle()
 def index():
     """Render the homepage."""
     # Check if the user has a session cookie
-    email = request.get_cookie('email')
+    email = request.get_cookie('email', secret=SETTINGS['Secret'])
     if email:
         return template('verified', email=email)
     else:
@@ -127,8 +127,15 @@ def verify_post():
         response.status = 400
         return template('error', error=exc)
 
-    # Done logging in! Set a session cookie.
-    response.set_cookie('email', email, httponly=True)
+    # Done logging in! Set a session cookie with the following properties:
+    # - It should be cryptographically signed to prevent tampering.
+    # - It should be marked 'http-only' to prevent exfiltration via XSS.
+    # - If possible, it should be marked 'secure' so it's only sent via HTTPS.
+    response.set_cookie('email', email,
+                        secret=SETTINGS['Secret'],
+                        secure=SETTINGS['WebsiteURL'].startswith('https://'),
+                        httponly=True)
+
     return redirect('/')
 
 

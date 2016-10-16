@@ -1,7 +1,7 @@
 """Configuration parser for the Portier demo application."""
 
 from configparser import ConfigParser
-from os import environ as ENV
+from os import environ as ENV, urandom
 
 META = (
     # Environment Var    Config Key    Default Value
@@ -10,6 +10,7 @@ META = (
     ('DEMO_WEBSITE_URL', 'WebsiteURL', 'http://localhost:8000'),
     ('DEMO_BROKER_URL',  'BrokerURL',  'https://broker.portier.io'),
     ('DEMO_REDIS_URL',   'RedisURL',   None),
+    ('DEMO_SECRET',      'Secret',     None),
 )
 
 HEROKU_REDIS_ENV_VARS = ('REDISTOGO_URL', 'REDISGREEN_URL', 'REDISCLOUD_URL',
@@ -56,5 +57,9 @@ def load():
     for var, key, _ in META:
         if var in ENV:
             settings[key] = ENV[var]
+
+    # Generate a random Secret if none was set
+    if settings['Secret'] is None:
+        settings['Secret'] = bytearray(urandom(32)).hex()
 
     return settings

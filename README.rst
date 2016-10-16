@@ -30,6 +30,7 @@ ListenPort     DEMO_LISTEN_PORT     8000
 WebsiteURL     DEMO_WEBSITE_URL     http://localhost:8000
 BrokerURL      DEMO_BROKER_URL      https://broker.portier.io
 RedisURL       DEMO_REDIS_URL       (none - uses FakeRedis)
+Secret         DEMO_SECRET          (none - generates one)
 ============== ==================== =========================
 
 About Redis

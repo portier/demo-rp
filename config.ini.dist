@@ -25,3 +25,7 @@ BrokerURL  = https://broker.portier.io
 #
 # Default: (none - uses FakeRedis)
 RedisURL = 
+
+# (Optional) What secret should be used for cryptographically signing cookies?
+# Default: (none - generates a random secret at every startup)
+Secret = 
