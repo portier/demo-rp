@@ -7,7 +7,7 @@ This website exposes the following HTTP endpoints:
 HTTP Endpoint    Description
 ================ =====================================================
 GET  /           Render homepage
-GET  /static/... Server static assets
+GET  /static/... Serve static assets
 POST /login      Redirect to the broker and begin authentication
 POST /verify     Receive an id_token via the broker and complete login
 POST /logout     Clear session cookies
