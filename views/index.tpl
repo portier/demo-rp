@@ -1,17 +1,8 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Portier Example RP</title>
-    <link rel="stylesheet" href="/static/style.css" />
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-  </head>
-  <body>
-    <p>You can log in below:</p>
-    <form action="/login" method="POST">
-      <input type=email name=email placeholder="you@example.com" autofocus />
+% include('_head.tpl')
+    <form class="demo" action="/login" method="POST">
+      <p>Try out Portier by entering your email address below:</p>
+      <input type=email name=email placeholder="you@example.com" />
       <input type=submit value="Log In" />
+      <p><small><em>Try a Gmail and a non-Gmail address!</em></small></p>
     </form>
-    <p><small><em>Code at <a href="https://github.com/portier/demo-rp">Portier/Demo-RP</a>.</em></small></p>
-  </body>
-</html>
+% include('_foot.tpl')
