@@ -117,6 +117,17 @@ def verify_post():
 
     Normally, this would include setting a signed, http-only session cookie.
     """
+    # Check for an error coming from the upstream broker
+    if 'error' in request.params:
+        err = request.params['error']
+        desc = request.params.get('error_description')
+        msg = 'Broker Error (%s)' % err
+        if desc:
+            msg += ': %s' % desc
+
+        response.status = 400
+        return template('error', error=msg)
+
     # Get the user's signed identity token from the HTTP POST form data
     token = request.forms['id_token']
 
