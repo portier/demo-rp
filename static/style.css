@@ -1,11 +1,39 @@
-body {
+html {
   font-family: sans-serif;
   color: #333;
   background-color: #deefff;
   background-image: linear-gradient(to bottom, #deefff, #98bede);
   height: 100vh;
   text-align: center;
-  padding-top: 2em;
   box-sizing: border-box;
   margin: 0;
 }
+
+body {
+  max-width: 40em;
+  margin: 0 auto;
+  padding: 1em;
+}
+
+h1 > a, h1 > a:visited {
+    color: black;
+}
+
+a, a:visited {
+    color: #d07;
+    text-decoration: none;
+}
+
+a:hover, a:active, a:focus {
+    text-decoration: underline;
+}
+
+.demo {
+  border: 1px solid black;
+  padding: 1em;
+  background: #fff;
+  box-shadow: 2px 3px 3px #000;
+}
+
+.demo *:first-child { margin-top: 0; }
+.demo *:last-child { margin-bottom: 0; }

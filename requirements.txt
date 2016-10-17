@@ -1,2 +1,9 @@
-cryptography==1.*
 PyJWT==1.*
+aiohttp==1.0.*
+cryptography==1.*
+fakeredis==0.8.*
+redis==2.10.*
+
+# We need a recent commit of Bottle master for its aiohttp/asyncio support
+# Switch to bottle==0.13.* when released
+https://github.com/bottlepy/bottle/archive/7c1c1ca314f3eff8cc2deb894be5d02f7940fe3c.zip

@@ -1,0 +1,31 @@
+[PortierDemo]
+
+# What IP address should this server listen on?
+# Default: 127.0.0.1
+ListenIP = 127.0.0.1
+
+# What TCP port should this server on?
+# Default: 8000
+ListenPort = 8000
+
+# What user-facing URL is this website accessible at?
+# Default: http://localhost:8000
+WebsiteURL = http://localhost:8000
+
+# What is the full URL, without a trailing slash, for the Portier Broker?
+# Default: https://broker.portier.io
+BrokerURL  = https://broker.portier.io
+
+# (Optional) What is the URL for a Redis instance in which to store nonces?
+# The protocol may be one of redis://, rediss://, or unix:// as supported by
+# the Redis-Py library at https://github.com/andymccurdy/redis-py
+#
+# If omitted or unset, this project defaults to using FakeRedis, which is only
+# suitable for local testing.
+#
+# Default: (none - uses FakeRedis)
+RedisURL = 
+
+# (Optional) What secret should be used for cryptographically signing cookies?
+# Default: (none - generates a random secret at every startup)
+Secret = 
