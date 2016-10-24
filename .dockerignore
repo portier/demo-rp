@@ -1,0 +1,8 @@
+.*
+*.dist
+Procfile
+README.rst
+runtime.txt
+__pycache__
+venv*
+*.ini
