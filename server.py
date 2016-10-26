@@ -92,6 +92,7 @@ def login_post():
         'scope': 'openid email',
         'nonce': nonce,
         'response_type': 'id_token',
+        'response_mode': 'form_post',
         'client_id': SETTINGS['WebsiteURL'],
         'redirect_uri': SETTINGS['WebsiteURL'] + '/verify',
     })
