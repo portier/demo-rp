@@ -11,4 +11,4 @@
     <p>Portier lets people log into your website with just their email address.</p>
     <p><strong>No password necessary.</strong></p>
     <p>Safer, Easier, Self-Hostable. <a href="http://portier.io">Learn More</a>.</p>
-    <p><strong>NOTE:</strong> Our outbound SMTP service is throttling the demo due to high bounce rates. Email confirmations may take a minute or so to arrive. We're working on it.</p>
+    <p><strong>NOTE:</strong> Our outbound SMTP service is throttling this demo due to high bounce rates (<a href="https://news.ycombinator.com/item?id=12837669">Thanks, HN</a>). Email confirmations may take a minute or so to arrive, instead of the usual 2-3 seconds. We're working on it.</p>
