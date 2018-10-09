@@ -1,0 +1,41 @@
+sudo: false
+language: bash
+
+matrix:
+  include:
+  - services: docker
+    env: PUBLISH=true
+
+env:
+  global:
+  - PROJECT_NAME=portier-rp
+  - IMAGE_NAME=$DOCKER_USERNAME/$PROJECT_NAME
+
+before_script:
+- set -e
+- |
+  if [ "$PUBLISH" = "true" ]; then
+    docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+  fi
+
+script:
+- |
+  if [ "$PUBLISH" = "true" ]; then
+    docker build -t $IMAGE_NAME .
+  fi
+
+after_success:
+- |
+  if [ "$PUBLISH" = "true" ] && [ "$TRAVIS_PULL_REQUEST" = "false" ]; then
+    docker push $IMAGE_NAME
+
+    if [ -n "$TRAVIS_TAG" ]; then
+      docker tag $IMAGE_NAME $IMAGE_NAME:$TRAVIS_TAG
+      docker push $IMAGE_NAME:$TRAVIS_TAG
+    fi
+  fi
+
+branches:
+  only:
+  - master
+  - docker-build
