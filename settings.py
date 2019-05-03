@@ -32,7 +32,7 @@ def load():
     See ``README.rst`` and ``config.ini.dist`` for more information.
     """
     parser = ConfigParser(default_section=INI_SECTION,
-                          defaults={key: val for _, key, val in META})
+                          defaults={key: val for _, key, val in META if val})
 
     settings = parser[INI_SECTION]
 
