@@ -307,4 +307,4 @@ if __name__ == '__main__':
     print()
 
     app.run(host=SETTINGS['ListenIP'], port=SETTINGS['ListenPort'],
-            server='aiohttp')
+            server='waitress')
