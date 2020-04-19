@@ -58,8 +58,23 @@ def load():
         if var in ENV:
             settings[key] = ENV[var]
 
+    # Try to read a secret from the state directory.
+    secret_file = None
+    if not settings['Secret'] and 'STATE_DIRECTORY' in ENV:
+        secret_file = '%s/secret.txt' % ENV['STATE_DIRECTORY']
+        try:
+            with open(secret_file, 'r') as f:
+                settings['Secret'] = f.read()
+        except OSError:
+            pass
+
     # Generate a random Secret if none was set
     if not settings['Secret']:
         settings['Secret'] = bytearray(urandom(32)).hex()
+
+        # Write the secret to the state directory.
+        if secret_file:
+            with open(secret_file, 'w') as f:
+                f.write(settings['Secret'])
 
     return settings
