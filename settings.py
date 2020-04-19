@@ -9,8 +9,8 @@ META = (
     ('DEMO_LISTEN_PORT', 'ListenPort', '8000'),
     ('DEMO_WEBSITE_URL', 'WebsiteURL', 'http://localhost:8000'),
     ('DEMO_BROKER_URL',  'BrokerURL',  'https://broker.portier.io'),
-    ('DEMO_REDIS_URL',   'RedisURL',   None),
-    ('DEMO_SECRET',      'Secret',     None),
+    ('DEMO_REDIS_URL',   'RedisURL',   ''),
+    ('DEMO_SECRET',      'Secret',     ''),
 )
 
 HEROKU_REDIS_ENV_VARS = ('REDISTOGO_URL', 'REDISGREEN_URL', 'REDISCLOUD_URL',
@@ -32,7 +32,7 @@ def load():
     See ``README.rst`` and ``config.ini.dist`` for more information.
     """
     parser = ConfigParser(default_section=INI_SECTION,
-                          defaults={key: val for _, key, val in META if val})
+                          defaults={key: val for _, key, val in META})
 
     settings = parser[INI_SECTION]
 
@@ -59,7 +59,7 @@ def load():
             settings[key] = ENV[var]
 
     # Generate a random Secret if none was set
-    if settings['Secret'] is None:
+    if not settings['Secret']:
         settings['Secret'] = bytearray(urandom(32)).hex()
 
     return settings
