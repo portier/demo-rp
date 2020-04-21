@@ -82,9 +82,14 @@ def login_post():
     # Get the user's email address from the HTTP POST form data
     email = request.forms['email']
 
+    # Validate that the input resembles an email address
+    if not re.match('.+@.+', email):
+        return template('error', error='Invalid email address: %s' % email)
+
     # Generate and store a nonce for this authentication request
     nonce = uuid4().hex
-    REDIS.setex(nonce, timedelta(minutes=15).seconds, '')
+    session_id = 'session:%s:%s' % (nonce, email)
+    REDIS.setex(session_id, timedelta(minutes=15).seconds, '')
 
     # Forward the user to the broker, along with all necessary parameters
     query_args = urlencode({
@@ -238,9 +243,7 @@ def jwk_to_rsa(key):
 
 
 def get_verified_email(token):
-    """Validate an Identity Token (JWT) and return its subject (email address).
-
-    In Portier, the subject field contains the user's verified email address.
+    """Validate an Identity Token (JWT) and return the email address.
 
     This functions checks the authenticity of the JWT with the following steps:
 
@@ -251,15 +254,13 @@ def get_verified_email(token):
         * ``iss`` (issuer) must match the broker's origin.
         * ``exp`` (expires) must be in the future.
         * ``iat`` (issued at) must be in the past.
-        * ``sub`` (subject) must be an email address.
-        * ``nonce`` (cryptographic nonce) must not have been seen previously.
-
-    3. If present, verify that the ``nbf`` (not before) claim is in the past.
+        * ``nonce`` and ``email_original`` must match a session.
 
     Timestamps are allowed a few minutes of leeway to account for clock skew.
 
     This demo relies on the `PyJWT`_ library to check signatures and validate
-    all claims except for ``sub`` and ``nonce``. Those are checked separately.
+    all claims except for ``nonce`` and ``email_original``. Those are checked
+    separately.
 
     .. _PyJWT: https://github.com/jpadilla/pyjwt
     """
@@ -284,26 +285,23 @@ def get_verified_email(token):
     except Exception as exc:
         raise RuntimeError('Invalid JWT: %s' % exc)
 
-    # Validate that the subject resembles an email address
-    if not re.match('.+@.+', payload['sub']):
-        raise RuntimeError('Invalid email address: %s' % payload['sub'])
-
-    # Invalidate the nonce used in this JWT to prevent re-use
-    if not REDIS.delete(payload['nonce']):
-        raise RuntimeError('Invalid, expired, or re-used nonce')
+    # Check that we have a valid session
+    session_id = 'session:%s:%s' % (payload['nonce'], payload['email_original'])
+    if not REDIS.delete(session_id):
+        raise RuntimeError('Invalid or expired session')
 
     # Done!
-    return payload['sub']
+    return payload['email']
 
 
 # Server Boilerplate ---------------------------------------------------------
 
 
 if __name__ == '__main__':
-    print("Starting Portier Demo...")
-    print("-> Demo URL: %s" % SETTINGS['WebsiteURL'])
-    print("-> Broker URL: %s" % SETTINGS['BrokerURL'])
-    print("-> Redis: %s" % REDIS)
+    print('Starting Portier Demo...')
+    print('-> Demo URL: %s' % SETTINGS['WebsiteURL'])
+    print('-> Broker URL: %s' % SETTINGS['BrokerURL'])
+    print('-> Redis: %s' % REDIS)
     print()
 
     app.run(host=SETTINGS['ListenIP'], port=SETTINGS['ListenPort'],
