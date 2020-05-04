@@ -28,3 +28,10 @@ jobs:
 
     - name: Lint
       run: flake8 .
+
+    - name: Deploy staging
+      if: github.repository == 'portier/demo-rp' && github.ref == 'refs/heads/master'
+      env:
+        SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+      run: |
+        curl -sS -X POST -H @- https://server.portier.io/webhook <<< "Authorization: Bearer $SECRET"
