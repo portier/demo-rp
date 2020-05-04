@@ -285,8 +285,11 @@ def get_verified_email(token):
     except Exception as exc:
         raise RuntimeError('Invalid JWT: %s' % exc)
 
+    # Extract the original email input from the token.
+    email_original = payload.get('email_original', payload['email'])
+
     # Check that we have a valid session
-    session_id = 'session:%s:%s' % (payload['nonce'], payload['email_original'])
+    session_id = 'session:%s:%s' % (payload['nonce'], email_original)
     if not REDIS.delete(session_id):
         raise RuntimeError('Invalid or expired session')
 
