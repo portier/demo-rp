@@ -2,7 +2,9 @@ name: Build
 
 on:
   push:
-    branches: '**'
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   build:
@@ -30,8 +32,10 @@ jobs:
       run: flake8 .
 
     - name: Deploy staging
-      if: github.repository == 'portier/demo-rp' && github.ref == 'refs/heads/master'
-      env:
-        SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+      if: github.repository == 'portier/demo-rp' && github.ref == 'refs/heads/main'
       run: |
-        curl -sS -X POST -H @- https://server.portier.io/webhook <<< "Authorization: Bearer $SECRET"
+        curl -X POST \
+          -H 'Authorization: token ${{ secrets.DEPLOY_PAT }}' \
+          -H 'Accept: application/vnd.github.v3+json' \
+          https://api.github.com/repos/portier/public-infra/actions/workflows/update_testing_demo.yml/dispatches \
+          -d '{ "ref": "main" }'
