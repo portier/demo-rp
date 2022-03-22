@@ -1,6 +1,6 @@
-PyJWT==1.*
+PyJWT==2.*
 bottle==0.12.*
-cryptography==3.4.*
+cryptography==36.*
 fakeredis==1.*
-redis==3.4.*
-waitress==1.*
+redis==4.*
+waitress==2.*
